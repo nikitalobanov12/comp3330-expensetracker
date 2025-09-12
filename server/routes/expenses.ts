@@ -16,13 +16,22 @@ const expenseSchema = z.object({
   amount: z.number().int().positive(),
 });
 
+const updateExpenseSchema = z
+  .object({
+    title: z.string().min(3).max(100).optional(),
+    amount: z.number().int().positive().optional(),
+  })
+  .refine((data) => data.title !== undefined || data.amount !== undefined, {
+    message: "At least one field (title or amount) must be provided",
+  });
+
 const createExpenseSchema = expenseSchema.omit({ id: true });
 
 export type Expense = z.infer<typeof expenseSchema>;
 
 const ok = <T>(c: any, data: T, status = 200) => c.json({ data }, status);
-const error = (c: any, message: string, status = 400) =>
-  c.json({ error: { message } });
+const err = (c: any, message: string, status = 400) =>
+  c.json({ error: { message } }, status);
 // Router
 export const expensesRoute = new Hono()
   // GET /api/expenses → list
@@ -33,8 +42,8 @@ export const expensesRoute = new Hono()
   .get("/:id{\\d+}", (c) => {
     const id = Number(c.req.param("id"));
     const item = expenses.find((e) => e.id === id);
-    if (!item) return error(c, "Not found", 404);
-    return c.json({ expense: item });
+    if (!item) return err(c, "Not found", 404);
+    return ok(c, { expense: item });
   })
 
   // POST /api/expenses → create (validated)
@@ -43,14 +52,50 @@ export const expensesRoute = new Hono()
     const nextId = (expenses.at(-1)?.id ?? 0) + 1;
     const created: Expense = { id: nextId, ...data };
     expenses.push(created);
-    return c.json({ expense: created }, 201);
+    return ok(c, { expense: created }, 201);
   })
 
   // DELETE /api/expenses/:id → remove
   .delete("/:id{\\d+}", (c) => {
     const id = Number(c.req.param("id"));
     const idx = expenses.findIndex((e) => e.id === id);
-    if (idx === -1) return c.json({ error: "Not found" }, 404);
+    if (idx === -1) return err(c, "Not found", 404);
     const [removed] = expenses.splice(idx, 1);
-    return c.json({ deleted: removed });
+    return ok(c, { deleted: removed });
   });
+
+// PUT /api/expenses/:id → full replace
+expensesRoute.put(
+  "/:id{\\d+}",
+  zValidator("json", createExpenseSchema),
+  (c) => {
+    const id = Number(c.req.param("id"));
+    const idx = expenses.findIndex((e) => e.id === id);
+    if (idx === -1) return err(c, "Not found", 404);
+
+    const data = c.req.valid("json");
+    const updated: Expense = { id, ...data };
+    expenses[idx] = updated;
+    return ok(c, { expense: updated });
+  },
+);
+
+// PATCH /api/expenses/:id → partial update
+expensesRoute.patch(
+  "/:id{\\d+}",
+  zValidator("json", updateExpenseSchema),
+  (c) => {
+    const id = Number(c.req.param("id"));
+    const idx = expenses.findIndex((e) => e.id === id);
+    if (idx === -1) return err(c, "Not found", 404);
+
+    const data = c.req.valid("json");
+    const current = expenses[idx]!;
+    const updated: Expense = {
+      ...current,
+      ...data,
+    };
+    expenses[idx] = updated;
+    return ok(c, { expense: updated });
+  },
+);
