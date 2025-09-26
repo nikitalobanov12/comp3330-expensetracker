@@ -1,15 +1,13 @@
 // server/routes/expenses.ts
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { eq } from "drizzle-orm";
+import { db, schema } from "../db/client";
 
-// In‑memory DB for Week 2 (we'll replace with Postgres in Week 4)
-const expenses: Expense[] = [
-  { id: 1, title: "Coffee", amount: 4 },
-  { id: 2, title: "Groceries", amount: 35 },
-];
+const { expenses } = schema;
 
-// Zod schemas
 const expenseSchema = z.object({
   id: z.number().int().positive(),
   title: z.string().min(3).max(100),
@@ -29,73 +27,76 @@ const createExpenseSchema = expenseSchema.omit({ id: true });
 
 export type Expense = z.infer<typeof expenseSchema>;
 
-const ok = <T>(c: any, data: T, status = 200) => c.json({ data }, status);
-const err = (c: any, message: string, status = 400) =>
+const ok = <T>(c: Context, data: T, status = 200) => c.json({ data }, status);
+const err = (c: Context, message: string, status = 400) =>
   c.json({ error: { message } }, status);
-// Router
+
+const toPatchPayload = (input: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  );
+
 export const expensesRoute = new Hono()
-  // GET /api/expenses → list
-  .get("/", (c) => ok(c, { expenses }))
-
-  // GET /api/expenses/:id → single item
-  // Enforce numeric id with a param regex (\\d+)
-  .get("/:id{\\d+}", (c) => {
-    const id = Number(c.req.param("id"));
-    const item = expenses.find((e) => e.id === id);
-    if (!item) return err(c, "Not found", 404);
-    return ok(c, { expense: item });
+  .get("/", async (c) => {
+    const rows = await db.select().from(expenses);
+    return ok(c, { expenses: rows });
   })
-
-  // POST /api/expenses → create (validated)
-  .post("/", zValidator("json", createExpenseSchema), (c) => {
-    const data = c.req.valid("json"); // { title, amount }
-    const nextId = (expenses.at(-1)?.id ?? 0) + 1;
-    const created: Expense = { id: nextId, ...data };
-    expenses.push(created);
+  .get("/:id{\\d+}", async (c) => {
+    const id = Number(c.req.param("id"));
+    const [row] = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, id))
+      .limit(1);
+    if (!row) return err(c, "Not found", 404);
+    return ok(c, { expense: row });
+  })
+  .post("/", zValidator("json", createExpenseSchema), async (c) => {
+    const input = c.req.valid("json");
+    const [created] = await db.insert(expenses).values(input).returning();
     return ok(c, { expense: created }, 201);
   })
-
-  // DELETE /api/expenses/:id → remove
-  .delete("/:id{\\d+}", (c) => {
+  .delete("/:id{\\d+}", async (c) => {
     const id = Number(c.req.param("id"));
-    const idx = expenses.findIndex((e) => e.id === id);
-    if (idx === -1) return err(c, "Not found", 404);
-    const [removed] = expenses.splice(idx, 1);
+    const [removed] = await db
+      .delete(expenses)
+      .where(eq(expenses.id, id))
+      .returning();
+    if (!removed) return err(c, "Not found", 404);
     return ok(c, { deleted: removed });
   });
 
-// PUT /api/expenses/:id → full replace
 expensesRoute.put(
   "/:id{\\d+}",
   zValidator("json", createExpenseSchema),
-  (c) => {
+  async (c) => {
     const id = Number(c.req.param("id"));
-    const idx = expenses.findIndex((e) => e.id === id);
-    if (idx === -1) return err(c, "Not found", 404);
-
-    const data = c.req.valid("json");
-    const updated: Expense = { id, ...data };
-    expenses[idx] = updated;
+    const input = c.req.valid("json");
+    const [updated] = await db
+      .update(expenses)
+      .set({ ...input })
+      .where(eq(expenses.id, id))
+      .returning();
+    if (!updated) return err(c, "Not found", 404);
     return ok(c, { expense: updated });
   },
 );
 
-// PATCH /api/expenses/:id → partial update
 expensesRoute.patch(
   "/:id{\\d+}",
   zValidator("json", updateExpenseSchema),
-  (c) => {
+  async (c) => {
     const id = Number(c.req.param("id"));
-    const idx = expenses.findIndex((e) => e.id === id);
-    if (idx === -1) return err(c, "Not found", 404);
+    const raw = c.req.valid("json");
+    const patch = toPatchPayload(raw as Record<string, unknown>);
+    if (Object.keys(patch).length === 0) return err(c, "Empty patch", 400);
 
-    const data = c.req.valid("json");
-    const current = expenses[idx]!;
-    const updated: Expense = {
-      ...current,
-      ...data,
-    };
-    expenses[idx] = updated;
+    const [updated] = await db
+      .update(expenses)
+      .set(patch)
+      .where(eq(expenses.id, id))
+      .returning();
+    if (!updated) return err(c, "Not found", 404);
     return ok(c, { expense: updated });
   },
 );
