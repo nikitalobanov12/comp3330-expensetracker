@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { expensesRoute } from "./routes/expenses";
+import rpcRoute from "./routes/rpc";
 
 export const app = new Hono();
 
@@ -19,4 +20,5 @@ app.get("/", (c) => c.json({ message: "OK" }));
 app.get("/health", (c) => c.json({ status: "healthy" }));
 //Mount API Routes
 
-app.route("api/expenses", expensesRoute);
+app.route("/api/expenses", expensesRoute);
+app.route("/api/rpc", rpcRoute);

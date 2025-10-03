@@ -8,7 +8,7 @@ import { db, schema } from "../db/client";
 
 const { expenses } = schema;
 
-const expenseSchema = z.object({
+export const expenseSchema = z.object({
   id: z.number().int().positive(),
   title: z.string().min(3).max(100),
   amount: z.number().int().positive(),
@@ -23,7 +23,7 @@ const updateExpenseSchema = z
     message: "At least one field (title or amount) must be provided",
   });
 
-const createExpenseSchema = expenseSchema.omit({ id: true });
+export const createExpenseSchema = expenseSchema.omit({ id: true });
 
 export type Expense = z.infer<typeof expenseSchema>;
 
