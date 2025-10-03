@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, type Expense } from "@/lib/api";
+import { api, expensesQueryKey, type ExpenseListResponse } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,76 +10,67 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-type ExpensesListProps = {
-  refreshKey: number;
+type DeleteContext = {
+  snapshot: ExpenseListResponse | undefined;
+  removedId: number;
 };
 
-type Status = "idle" | "loading" | "ready" | "error";
+export function ExpensesList() {
+  const queryClient = useQueryClient();
 
-export function ExpensesList({ refreshKey }: ExpensesListProps) {
-  const [items, setItems] = useState<Expense[]>([]);
-  const [status, setStatus] = useState<Status>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const expensesQuery = useQuery({
+    queryKey: expensesQueryKey,
+    queryFn: () => api.getExpenses(),
+  });
 
-  useEffect(() => {
-    let cancelled = false;
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.deleteExpense(id),
+    onMutate: async (id): Promise<DeleteContext> => {
+      await queryClient.cancelQueries({ queryKey: expensesQueryKey });
+      const snapshot = queryClient.getQueryData<ExpenseListResponse>(expensesQueryKey);
 
-    async function loadExpenses() {
-      setStatus("loading");
-      setError(null);
-      try {
-        const data = await api.getExpenses();
-        if (!cancelled) {
-          setItems(data.expenses);
-          setStatus("ready");
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const message = err instanceof Error ? err.message : "Failed to load expenses";
-          setError(message || "Failed to load expenses");
-          setStatus("error");
-        }
+      queryClient.setQueryData<ExpenseListResponse | undefined>(expensesQueryKey, (current) =>
+        current
+          ? {
+              expenses: current.expenses.filter((expense) => expense.id !== id),
+            }
+          : current,
+      );
+
+      return { snapshot, removedId: id };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.snapshot) {
+        queryClient.setQueryData(expensesQueryKey, context.snapshot);
       }
-    }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: expensesQueryKey });
+    },
+  });
 
-    loadExpenses();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
-
-  async function handleDelete(id: number) {
-    setDeletingId(id);
-    setError(null);
-    try {
-      await api.deleteExpense(id);
-      setItems((current) => current.filter((item) => item.id !== id));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete expense";
-      setError(message || "Failed to delete expense");
-    } finally {
-      setDeletingId(null);
-    }
-  }
+  const items = expensesQuery.data?.expenses ?? [];
+  const isLoading = expensesQuery.isPending && !expensesQuery.data;
+  const isRefreshing = expensesQuery.isFetching;
 
   return (
     <Card className="mt-6">
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Recent Expenses</CardTitle>
-        <CardDescription>Fetched directly from the API via the Vite proxy.</CardDescription>
+        <CardDescription>Cached and kept fresh with TanStack Query.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {status === "loading" ? (
+        {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading expenses…</p>
         ) : null}
 
-        {status === "error" && error ? (
-          <p className="text-sm text-destructive">{error}</p>
+        {expensesQuery.isError ? (
+          <p className="text-sm text-destructive">
+            {(expensesQuery.error instanceof Error && expensesQuery.error.message) || "Failed to load expenses"}
+          </p>
         ) : null}
 
-        {status === "ready" && items.length === 0 ? (
+        {!isLoading && items.length === 0 ? (
           <div className="rounded-lg border border-dashed bg-muted/40 p-6 text-center">
             <p className="text-sm text-muted-foreground">No expenses yet. Add your first entry above.</p>
           </div>
@@ -102,16 +93,26 @@ export function ExpensesList({ refreshKey }: ExpensesListProps) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(expense.id)}
-                    disabled={deletingId === expense.id}
+                    onClick={() => deleteMutation.mutate(expense.id)}
+                    disabled={deleteMutation.isPending && deleteMutation.variables === expense.id}
                     aria-label={`Delete ${expense.title}`}
                   >
-                    {deletingId === expense.id ? "Removing…" : "Delete"}
+                    {deleteMutation.isPending && deleteMutation.variables === expense.id ? "Removing…" : "Delete"}
                   </Button>
                 </div>
               </li>
             ))}
           </ul>
+        ) : null}
+
+        {deleteMutation.isError ? (
+          <p className="text-sm text-destructive">
+            {(deleteMutation.error instanceof Error && deleteMutation.error.message) || "Failed to delete expense"}
+          </p>
+        ) : null}
+
+        {isRefreshing && !isLoading ? (
+          <p className="text-xs text-muted-foreground">Refreshing…</p>
         ) : null}
       </CardContent>
     </Card>

@@ -10,16 +10,16 @@ export function AppCard() {
   return (
     <Card className="mt-6 font-mono">
       <CardHeader>
-        <CardTitle>Lab 6 Checkpoints</CardTitle>
+        <CardTitle>Lab 7 Checkpoints</CardTitle>
         <CardDescription>
-          Vite proxy wired up • Fetch helper shared • UI consuming live API data.
+          TanStack Query caches reads, powers optimistic writes, and keeps the proxy-driven API in sync.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="space-y-2 text-sm text-muted-foreground">
-          <li>Use the Add Expense form to POST through the proxy.</li>
-          <li>List updates instantly thanks to the typed fetch helper.</li>
-          <li>Try deleting an item to confirm optimistic UI updates.</li>
+          <li>`useQuery` hydrates the list with loading/error fallbacks.</li>
+          <li>`useMutation` invalidates and patches the cache on create/delete.</li>
+          <li>React Query Devtools ready—just import when debugging.</li>
         </ul>
       </CardContent>
     </Card>

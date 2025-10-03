@@ -1,44 +1,48 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { api } from "@/lib/api";
+import { api, expensesQueryKey, type ExpenseListResponse } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type AddExpenseFormProps = {
-  onAdded?: () => void;
-};
-
-export function AddExpenseForm({ onAdded }: AddExpenseFormProps) {
+export function AddExpenseForm() {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const amountNumber = amount === "" ? NaN : Number(amount);
   const amountIsValid = Number.isFinite(amountNumber) && amountNumber > 0;
   const titleIsValid = title.trim().length >= 3;
 
+  const mutation = useMutation({
+    mutationFn: (payload: { title: string; amount: number }) => api.createExpense(payload),
+    onSuccess: (data) => {
+      setTitle("");
+      setAmount("");
+      // Update cache optimistically before refetch to keep UI snappy.
+      queryClient.setQueryData<ExpenseListResponse | undefined>(
+        expensesQueryKey,
+        (current) =>
+          current
+            ? {
+                expenses: [...current.expenses, data.expense],
+              }
+            : current,
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: expensesQueryKey });
+    },
+  });
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!titleIsValid || !amountIsValid) return;
 
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      await api.createExpense({
-        title: title.trim(),
-        amount: Math.round(amountNumber),
-      });
-      setTitle("");
-      setAmount("");
-      onAdded?.();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to add expense";
-      setError(message || "Failed to add expense");
-    } finally {
-      setSubmitting(false);
-    }
+    mutation.mutate({
+      title: title.trim(),
+      amount: Math.round(amountNumber),
+    });
   }
 
   return (
@@ -70,13 +74,17 @@ export function AddExpenseForm({ onAdded }: AddExpenseFormProps) {
         </label>
         <Button
           type="submit"
-          disabled={submitting || !titleIsValid || !amountIsValid}
+          disabled={mutation.isPending || !titleIsValid || !amountIsValid}
           className="w-full sm:w-auto"
         >
-          {submitting ? "Adding…" : "Add Expense"}
+          {mutation.isPending ? "Adding…" : "Add Expense"}
         </Button>
       </div>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {mutation.isError ? (
+        <p className="text-sm text-destructive">
+          {(mutation.error instanceof Error && mutation.error.message) || "Failed to add expense"}
+        </p>
+      ) : null}
     </form>
   );
 }

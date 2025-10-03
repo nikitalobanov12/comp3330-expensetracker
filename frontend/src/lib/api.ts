@@ -45,4 +45,6 @@ export const api = {
     request<ExpenseDeletedResponse>(`/api/expenses/${id}`, { method: "DELETE" }),
 };
 
+export const expensesQueryKey = ["expenses"] as const;
+
 export type { Expense, ExpenseListResponse, ExpenseResponse };
