@@ -1,0 +1,61 @@
+comp3330-expensetracker                                        ~
+❯ curl "http://localhost:3000/api/expenses"
+{"data":{"expenses":[{"id":2,"title":"coffee and snacks","amount":13},{"id":3,"title":"AWS cloud bill","amount":399},{"id":4,"title":"car insurance","amount":194},{"id":5,"title":"amazon purchase","amount":27}]}}%
+❯ curl -i http://localhost:3000/api/expenses
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Response-Time: 472ms
+Date: Fri, 10 Oct 2025 01:29:13 GMT
+Content-Length: 212
+
+{"data":{"expenses":[{"id":2,"title":"coffee and snacks","amount":13},{"id":3,"title":"AWS cloud bill","amount":399},{"id":4,"title":"car insurance","amount":194},{"id":5,"title":"amazon purchase","amount":27}]}}%
+❯ curl -i http://localhost:3000/api/expenses/4
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Response-Time: 31ms
+Date: Fri, 10 Oct 2025 01:29:26 GMT
+Content-Length: 66
+
+{"data":{"expense":{"id":4,"title":"car insurance","amount":194}}}%
+❯ curl -i -X POST http://localhost:3000/api/expenses \
+> -H "Content-Type: application/json" \
+> -d '{"title":"Lab 8 demo","amount":42}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Response-Time: 38ms
+Date: Fri, 10 Oct 2025 01:30:13 GMT
+Content-Length: 62
+
+{"data":{"expense":{"id":8,"title":"Lab 8 demo","amount":42}}}%
+❯   curl -i -X PUT http://localhost:3000/api/expenses/4 \
+    -H "Content-Type: application/json" \
+    -d '{"title":"Updated title","amount":45}'
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Response-Time: 23ms
+Date: Fri, 10 Oct 2025 01:30:20 GMT
+Content-Length: 65
+
+{"data":{"expense":{"id":4,"title":"Updated title","amount":45}}}%
+❯                                comp3330-expensetracker -> main ? !
+❯  curl -i -X PATCH http://localhost:3000/api/expenses/4 \
+    -H "Content-Type: application/json" \
+    -d '{"amount":50}'
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Response-Time: 22ms
+Date: Fri, 10 Oct 2025 01:30:34 GMT
+Content-Length: 65
+
+{"data":{"expense":{"id":4,"title":"Updated title","amount":50}}}%
+❯ curl -i -X DELETE http://localhost:3000/api/expenses/4
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Response-Time: 21ms
+Date: Fri, 10 Oct 2025 01:30:55 GMT
+Content-Length: 65
+
+{"data":{"deleted":{"id":4,"title":"Updated title","amount":50}}}%
+❯  

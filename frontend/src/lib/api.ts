@@ -36,6 +36,7 @@ type ExpenseDeletedResponse = { deleted: Expense };
 
 export const api = {
   getExpenses: () => request<ExpenseListResponse>("/api/expenses"),
+  getExpense: (id: number) => request<ExpenseResponse>(`/api/expenses/${id}`),
   createExpense: (payload: { title: string; amount: number }) =>
     request<ExpenseResponse>("/api/expenses", {
       method: "POST",

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 
 import { api, expensesQueryKey, type ExpenseListResponse } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -83,8 +84,14 @@ export function ExpensesList() {
                 key={expense.id}
                 className="flex items-center justify-between gap-4 rounded-lg border bg-background/60 px-4 py-3 shadow-xs"
               >
-                <div>
-                  <p className="font-medium leading-tight">{expense.title}</p>
+                <div className="space-y-1">
+                  <Link
+                    to="/expenses/$id"
+                    params={{ id: expense.id }}
+                    className="font-medium leading-tight text-foreground underline-offset-4 hover:underline"
+                  >
+                    {expense.title}
+                  </Link>
                   <p className="text-sm text-muted-foreground">#{expense.id}</p>
                 </div>
                 <div className="flex items-center gap-3">

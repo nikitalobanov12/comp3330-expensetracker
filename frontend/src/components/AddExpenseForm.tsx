@@ -1,11 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { api, expensesQueryKey, type ExpenseListResponse } from "@/lib/api";
+import {
+  api,
+  expensesQueryKey,
+  type ExpenseListResponse,
+  type ExpenseResponse,
+} from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function AddExpenseForm() {
+type AddExpenseFormProps = {
+  onCreated?: (expense: ExpenseResponse["expense"]) => void;
+};
+
+export function AddExpenseForm({ onCreated }: AddExpenseFormProps) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const queryClient = useQueryClient();
@@ -29,6 +38,8 @@ export function AddExpenseForm() {
               }
             : current,
       );
+
+      onCreated?.(data.expense);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: expensesQueryKey });
