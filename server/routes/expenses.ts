@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/client";
+import { requireAuthMiddleware } from "../auth/requireAuth";
 
 const { expenses } = schema;
 
@@ -37,6 +38,7 @@ const toPatchPayload = (input: Record<string, unknown>) =>
   );
 
 export const expensesRoute = new Hono()
+  .use("*", requireAuthMiddleware)
   .get("/", async (c) => {
     const rows = await db.select().from(expenses);
     return ok(c, { expenses: rows });

@@ -2,6 +2,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 
 import { ModeToggle } from "./components/mode-toggle";
 import { ThemeProvider } from "./components/theme-provider";
+import { AuthBar } from "./components/AuthBar";
 
 export default function App() {
   return (
@@ -12,7 +13,7 @@ export default function App() {
             <div>
               <h1 className="text-3xl font-semibold tracking-tight">Expense Tracker</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Lab 8 — TanStack Router layouts with Tailwind CSS v4 styling.
+                Lab 9 — Backend-managed authentication with Kinde and protected API routes.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-4">
@@ -36,6 +37,7 @@ export default function App() {
                   New Expense
                 </Link>
               </nav>
+              <AuthBar />
               <ModeToggle />
             </div>
           </header>
