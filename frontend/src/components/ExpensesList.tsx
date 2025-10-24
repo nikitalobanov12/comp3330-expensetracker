@@ -93,6 +93,18 @@ export function ExpensesList() {
                     {expense.title}
                   </Link>
                   <p className="text-sm text-muted-foreground">#{expense.id}</p>
+                  {expense.fileUrl ? (
+                    <a
+                      href={expense.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      Download receipt
+                    </a>
+                  ) : (
+                    <p className="text-xs text-muted-foreground/80">Receipt not uploaded</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-semibold tabular-nums">${expense.amount}</span>

@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api, expensesQueryKey } from "@/lib/api";
+import { UploadExpenseForm } from "@/components/UploadExpenseForm";
 
 export default function ExpenseDetailRoute() {
   const { id } = useParams({ from: "/expenses/$id" });
@@ -80,6 +81,22 @@ export default function ExpenseDetailRoute() {
         <div>
           <p className="text-sm text-muted-foreground">Amount</p>
           <p className="text-2xl font-semibold tabular-nums">${expense.amount}</p>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">Receipt</p>
+          {expense.fileUrl ? (
+            <a
+              href={expense.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Download receipt
+            </a>
+          ) : (
+            <p className="text-sm text-muted-foreground/80">No receipt uploaded yet.</p>
+          )}
+          <UploadExpenseForm expenseId={expense.id} />
         </div>
       </CardContent>
       <CardFooter className="flex items-center justify-between">

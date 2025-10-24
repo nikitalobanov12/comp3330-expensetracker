@@ -4,6 +4,7 @@ import { authRoute } from "./auth/kinde";
 import { expensesRoute } from "./routes/expenses";
 import rpcRoute from "./routes/rpc";
 import { secureRoute } from "./routes/secure";
+import { uploadRoute } from "./routes/upload";
 
 export const app = new Hono();
 
@@ -25,4 +26,5 @@ app.get("/health", (c) => c.json({ status: "healthy" }));
 app.route("/api/auth", authRoute);
 app.route("/api/expenses", expensesRoute);
 app.route("/api/secure", secureRoute);
+app.route("/api/upload", uploadRoute);
 app.route("/api/rpc", rpcRoute);

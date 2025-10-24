@@ -13,7 +13,7 @@ export default function App() {
             <div>
               <h1 className="text-3xl font-semibold tracking-tight">Expense Tracker</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Lab 9 — Backend-managed authentication with Kinde and protected API routes.
+                Lab 10 — Secure file uploads with signed URLs and private receipts.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-4">
