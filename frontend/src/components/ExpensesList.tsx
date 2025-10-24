@@ -62,18 +62,44 @@ export function ExpensesList() {
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading expenses…</p>
+          <ul className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <li
+                key={i}
+                className="flex animate-pulse items-center justify-between gap-4 rounded-lg border bg-muted/60 px-4 py-3"
+              >
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 rounded bg-muted-foreground/20"></div>
+                  <div className="h-3 w-1/4 rounded bg-muted-foreground/20"></div>
+                </div>
+                <div className="h-4 w-16 rounded bg-muted-foreground/20"></div>
+              </li>
+            ))}
+          </ul>
         ) : null}
 
         {expensesQuery.isError ? (
-          <p className="text-sm text-destructive">
-            {(expensesQuery.error instanceof Error && expensesQuery.error.message) || "Failed to load expenses"}
-          </p>
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">
+              {(expensesQuery.error instanceof Error && expensesQuery.error.message) || "Failed to load expenses"}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => expensesQuery.refetch()}
+              className="mt-3"
+            >
+              Try Again
+            </Button>
+          </div>
         ) : null}
 
-        {!isLoading && items.length === 0 ? (
-          <div className="rounded-lg border border-dashed bg-muted/40 p-6 text-center">
-            <p className="text-sm text-muted-foreground">No expenses yet. Add your first entry above.</p>
+        {!isLoading && items.length === 0 && !expensesQuery.isError ? (
+          <div className="rounded-lg border border-dashed bg-muted/40 p-8 text-center">
+            <h3 className="text-lg font-semibold">No expenses yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Start by adding your first expense using the form above.
+            </p>
           </div>
         ) : null}
 

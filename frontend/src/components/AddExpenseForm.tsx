@@ -25,21 +25,33 @@ export function AddExpenseForm({ onCreated }: AddExpenseFormProps) {
 
   const mutation = useMutation({
     mutationFn: (payload: { title: string; amount: number }) => api.createExpense(payload),
+    onMutate: async (newItem) => {
+      await queryClient.cancelQueries({ queryKey: expensesQueryKey });
+      const previous = queryClient.getQueryData<ExpenseListResponse>(expensesQueryKey);
+
+      if (previous) {
+        const optimistic: ExpenseResponse["expense"] = {
+          id: Date.now(),
+          title: newItem.title,
+          amount: newItem.amount,
+          fileUrl: null,
+        };
+        queryClient.setQueryData<ExpenseListResponse>(expensesQueryKey, {
+          expenses: [...previous.expenses, optimistic],
+        });
+      }
+
+      return { previous };
+    },
     onSuccess: (data) => {
       setTitle("");
       setAmount("");
-      // Update cache optimistically before refetch to keep UI snappy.
-      queryClient.setQueryData<ExpenseListResponse | undefined>(
-        expensesQueryKey,
-        (current) =>
-          current
-            ? {
-                expenses: [...current.expenses, data.expense],
-              }
-            : current,
-      );
-
       onCreated?.(data.expense);
+    },
+    onError: (_error, _newItem, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(expensesQueryKey, context.previous);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: expensesQueryKey });
@@ -68,6 +80,9 @@ export function AddExpenseForm({ onCreated }: AddExpenseFormProps) {
             aria-invalid={!titleIsValid && title.length > 0}
             required
           />
+          {title.length > 0 && !titleIsValid && (
+            <p className="mt-1 text-xs text-destructive">Title must be at least 3 characters</p>
+          )}
         </label>
         <label className="w-full text-sm text-muted-foreground sm:w-48">
           <span className="mb-1 block font-medium text-foreground">Amount</span>
@@ -82,13 +97,38 @@ export function AddExpenseForm({ onCreated }: AddExpenseFormProps) {
             aria-invalid={!amountIsValid && amount.length > 0}
             required
           />
+          {amount.length > 0 && !amountIsValid && (
+            <p className="mt-1 text-xs text-destructive">Amount must be greater than 0</p>
+          )}
         </label>
         <Button
           type="submit"
           disabled={mutation.isPending || !titleIsValid || !amountIsValid}
           className="w-full sm:w-auto"
         >
-          {mutation.isPending ? "Adding…" : "Add Expense"}
+          {mutation.isPending ? (
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+              </svg>
+              Adding…
+            </span>
+          ) : (
+            "Add Expense"
+          )}
         </Button>
       </div>
       {mutation.isError ? (

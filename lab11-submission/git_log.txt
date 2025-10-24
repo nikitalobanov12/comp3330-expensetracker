@@ -1,0 +1,19 @@
+4b52705 added s3 for storing receipts
+8a99229 lab 9: set up authentication with kinde
+93d974a add tanstack router, navbar links, expenses list, detail, new form, notfound pages
+5eff262 lab 7 implement useQuery
+f190fcb lab 7 implement useQuery
+8e30a5d lab 6 set up vite proxy & api routes
+0174b6c lab 5 create frontend, initialize tailwind and shadcn
+e67aade lab4
+f14da39 Lab 3, implement patch routes
+1bba417 Lab 2, Lab 2: implemeneted more routes, Zod validation, & Custom timing middleware
+
+Lab 11 Changes (not yet committed):
+- Optimistic add mutation in AddExpenseForm.tsx
+- Optimistic delete with rollback in ExpensesList.tsx (already existed, enhanced)
+- Loading spinner in add button
+- Skeleton loading rows for expense list
+- Retry button for error states
+- Inline validation for form inputs (title, amount)
+- Enhanced empty state with better styling and messaging
